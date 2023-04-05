@@ -54,17 +54,31 @@ router.get("/:id", async (req, res, next) => {
 
 router.put("/:id", async (req, res, next) => {
     try {
-        const { amt } = req.body;
-        if ( !amt ) throw new ExpressError(`Update request body must have invoice 'amt' key.`, 400);
+        const { amt, paid } = req.body;
+
+        if ( !amt || !paid ) throw new ExpressError(`Update request body must have invoice 'amt' and 'paid' keys.`, 400);
+
+        const currentInvoice = await db.query(
+            `SELECT paid_date
+             FROM invoices
+             WHERE id=$1`,
+            [req.params.id]);
+
+        if (currentInvoice.rows.length === 0) throw new ExpressError(`Invoice with ID '${req.params.id}' could not be found.`, 404);
+
+        let paidDate;
+        const currentPaidDate = currentInvoice.rows[0].paid_date;
+
+        if (!currentPaidDate && paid) paidDate = new Date();
+        else if (!paid) paidDate = null;
+        else paidDate = currentPaidDate;
 
         const result = await db.query(
-            `UPDATE invoices SET amt=$1
-             WHERE id=$2
+            `UPDATE invoices
+             SET amt=$1, paid=$2, paid_date=$3
+             WHERE id=$4
              RETURNING id, comp_code, amt, paid, add_date, paid_date`,
-            [amt, req.params.id]
-        );
-
-        if (result.rows.length === 0) throw new ExpressError(`Invoice with ID '${req.params.id}' could not be found.`, 404);
+            [amt, paid, paidDate, req.params.id]);
     
         return res.json({ invoice: result.rows[0] });
     } catch (err) {

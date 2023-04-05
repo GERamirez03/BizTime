@@ -8,15 +8,17 @@ const ExpressError = require("./expressError")
 
 const companyRoutes = require("./routes/companies");
 const invoiceRoutes = require("./routes/invoices");
+const industryRoutes = require("./routes/industries");
 
 /** Parse incoming request bodies with JSON */
 
 app.use(express.json());
 
-/** Use companies and invoices routers */
+/** Use companies, invoices, and industries routers */
 
 app.use("/companies", companyRoutes);
 app.use("/invoices", invoiceRoutes);
+app.use("/industries", industryRoutes);
 
 /** 404 handler */
 
@@ -28,6 +30,7 @@ app.use(function(req, res, next) {
 /** general error handler */
 
 app.use((err, req, res, next) => {
+  console.log(err);
   res.status(err.status || 500);
 
   return res.json({
